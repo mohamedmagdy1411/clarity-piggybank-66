@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { TransactionCard } from "@/components/ui/TransactionCard";
 import { Button } from "@/components/ui/button";
@@ -25,56 +25,51 @@ export type Transaction = {
   date: string;
 };
 
+const STORAGE_KEY = "clarity_finance_transactions";
+
 export const RecentTransactions = () => {
   const { toast } = useToast();
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    {
-      id: 1,
-      type: "income",
-      amount: 2500,
-      category: "Salary",
-      description: "Monthly Salary",
-      date: "2024-02-01",
-    },
-    {
-      id: 2,
-      type: "expense",
-      amount: 50,
-      category: "Shopping",
-      description: "Groceries at Whole Foods",
-      date: "2024-02-02",
-    },
-    {
-      id: 3,
-      type: "expense",
-      amount: 30,
-      category: "Transport",
-      description: "Uber Ride",
-      date: "2024-02-03",
-    },
-    {
-      id: 4,
-      type: "expense",
-      amount: 15,
-      category: "Coffee",
-      description: "Starbucks Coffee",
-      date: "2024-02-03",
-    },
-    {
-      id: 5,
-      type: "expense",
-      amount: 800,
-      category: "Rent",
-      description: "Monthly Rent",
-      date: "2024-02-01",
-    },
-  ]);
-
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(
     null
   );
+
+  // Load transactions from localStorage on component mount
+  useEffect(() => {
+    const savedTransactions = localStorage.getItem(STORAGE_KEY);
+    if (savedTransactions) {
+      setTransactions(JSON.parse(savedTransactions));
+    } else {
+      // Set default transactions if none exist
+      const defaultTransactions = [
+        {
+          id: 1,
+          type: "income",
+          amount: 2500,
+          category: "Salary",
+          description: "Monthly Salary",
+          date: "2024-02-01",
+        },
+        {
+          id: 2,
+          type: "expense",
+          amount: 50,
+          category: "Shopping",
+          description: "Groceries at Whole Foods",
+          date: "2024-02-02",
+        },
+      ];
+      setTransactions(defaultTransactions);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultTransactions));
+    }
+  }, []);
+
+  // Save transactions to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
+  }, [transactions]);
 
   const handleAddTransaction = (data: any) => {
     const newTransaction = {

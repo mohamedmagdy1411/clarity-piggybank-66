@@ -25,6 +25,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { useState } from "react";
+import { Calculator } from "lucide-react";
 
 const transactionSchema = z.object({
   type: z.enum(["income", "expense"]),
@@ -49,6 +51,9 @@ export const TransactionForm = ({
   initialData,
 }: TransactionFormProps) => {
   const { toast } = useToast();
+  const [calculatorValue, setCalculatorValue] = useState("");
+  const [showCalculator, setShowCalculator] = useState(false);
+
   const form = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
     defaultValues: initialData || {
@@ -67,6 +72,27 @@ export const TransactionForm = ({
       title: `Transaction ${initialData ? "updated" : "added"} successfully!`,
       duration: 3000,
     });
+  };
+
+  const handleCalculatorInput = (value: string) => {
+    if (value === "=") {
+      try {
+        const result = eval(calculatorValue);
+        setCalculatorValue(result.toString());
+        form.setValue("amount", result.toString());
+      } catch (error) {
+        toast({
+          title: "Invalid calculation",
+          variant: "destructive",
+          duration: 3000,
+        });
+      }
+    } else if (value === "C") {
+      setCalculatorValue("");
+      form.setValue("amount", "");
+    } else {
+      setCalculatorValue((prev) => prev + value);
+    }
   };
 
   return (
@@ -111,7 +137,18 @@ export const TransactionForm = ({
               name="amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Amount</FormLabel>
+                  <FormLabel className="flex items-center justify-between">
+                    Amount
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowCalculator(!showCalculator)}
+                      className="h-6 w-6 p-0"
+                    >
+                      <Calculator className="h-4 w-4" />
+                    </Button>
+                  </FormLabel>
                   <FormControl>
                     <Input
                       placeholder="Enter amount"
@@ -119,6 +156,28 @@ export const TransactionForm = ({
                       {...field}
                     />
                   </FormControl>
+                  {showCalculator && (
+                    <div className="mt-2 p-2 border rounded-lg">
+                      <Input
+                        value={calculatorValue}
+                        readOnly
+                        className="mb-2"
+                      />
+                      <div className="grid grid-cols-4 gap-1">
+                        {["7", "8", "9", "/", "4", "5", "6", "*", "1", "2", "3", "-", "C", "0", "=", "+"].map((btn) => (
+                          <Button
+                            key={btn}
+                            type="button"
+                            variant={btn === "=" ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handleCalculatorInput(btn)}
+                          >
+                            {btn}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
