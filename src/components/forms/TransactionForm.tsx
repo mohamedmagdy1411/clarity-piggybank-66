@@ -146,32 +146,32 @@ export const TransactionForm = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="mb-4">
-          <FormLabel>Describe your transaction</FormLabel>
-          <div className="flex gap-2">
-            <Textarea
-              placeholder="E.g.: I spent $25 on coffee today"
-              value={aiText}
-              onChange={(e) => setAiText(e.target.value)}
-              className="min-h-[60px]"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={handleAIProcess}
-              disabled={isProcessing}
-            >
-              <Wand2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleSubmit)}
-            className="space-y-4 mt-4"
+            className="space-y-4"
           >
+            <FormItem>
+              <FormLabel>Describe your transaction</FormLabel>
+              <div className="flex gap-2">
+                <Textarea
+                  placeholder="E.g.: I spent $25 on coffee today"
+                  value={aiText}
+                  onChange={(e) => setAiText(e.target.value)}
+                  className="min-h-[60px]"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={handleAIProcess}
+                  disabled={isProcessing}
+                >
+                  <Wand2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </FormItem>
+
             <FormField
               control={form.control}
               name="type"
@@ -196,6 +196,7 @@ export const TransactionForm = ({
                 </FormItem>
               )}
             />
+            
             <FormField
               control={form.control}
               name="amount"
@@ -286,6 +287,7 @@ export const TransactionForm = ({
                 </FormItem>
               )}
             />
+
             <div className="flex justify-end space-x-2">
               <Button
                 type="button"
