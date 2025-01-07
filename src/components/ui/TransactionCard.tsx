@@ -53,7 +53,7 @@ export const TransactionCard = ({
   });
 
   return (
-    <Card className="p-4 hover:shadow-md transition-shadow animate-fade-in">
+    <Card className="p-4 hover:bg-accent/50 transition-colors duration-200 animate-fade-in border-border/40 bg-card/50">
       <div className="flex items-center space-x-4">
         <div
           className={cn(
@@ -69,10 +69,10 @@ export const TransactionCard = ({
           />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900 truncate">
+          <p className="text-sm font-medium text-foreground truncate">
             {description}
           </p>
-          <p className="text-xs text-gray-500 truncate">{category}</p>
+          <p className="text-xs text-muted-foreground truncate">{category}</p>
         </div>
         <div className="text-right">
           <p
@@ -83,7 +83,7 @@ export const TransactionCard = ({
           >
             {type === "income" ? "+" : "-"}${amount.toLocaleString()}
           </p>
-          <p className="text-xs text-gray-500">{formattedDate}</p>
+          <p className="text-xs text-muted-foreground">{formattedDate}</p>
         </div>
       </div>
     </Card>

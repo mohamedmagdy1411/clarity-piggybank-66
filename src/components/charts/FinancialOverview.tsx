@@ -11,7 +11,6 @@ import {
 } from "recharts";
 
 export const FinancialOverview = () => {
-  // Placeholder data - will be replaced with real data later
   const data = [
     { month: "Jan", income: 4000, expenses: 2400 },
     { month: "Feb", income: 3000, expenses: 1398 },
@@ -22,12 +21,12 @@ export const FinancialOverview = () => {
   ];
 
   return (
-    <Card className="p-6">
+    <Card className="p-6 border-border/40 bg-card/50">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-lg font-semibold text-gray-900">
+        <h2 className="text-lg font-semibold text-foreground">
           Financial Overview
         </h2>
-        <div className="text-sm text-gray-500">Last 6 months</div>
+        <div className="text-sm text-muted-foreground">Last 6 months</div>
       </div>
       <div className="h-[300px] w-full">
         <ResponsiveContainer width="100%" height="100%">
@@ -35,35 +34,36 @@ export const FinancialOverview = () => {
             data={data}
             margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis
               dataKey="month"
-              tick={{ fill: "#666" }}
-              tickLine={{ stroke: "#666" }}
+              tick={{ fill: "hsl(var(--foreground))" }}
+              tickLine={{ stroke: "hsl(var(--border))" }}
             />
             <YAxis
-              tick={{ fill: "#666" }}
-              tickLine={{ stroke: "#666" }}
+              tick={{ fill: "hsl(var(--foreground))" }}
+              tickLine={{ stroke: "hsl(var(--border))" }}
               tickFormatter={(value) => `$${value}`}
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: "#fff",
-                border: "1px solid #e2e8f0",
+                backgroundColor: "hsl(var(--background))",
+                border: "1px solid hsl(var(--border))",
                 borderRadius: "0.5rem",
+                color: "hsl(var(--foreground))",
               }}
               formatter={(value) => [`$${value}`, ""]}
             />
             <Legend />
             <Bar
               dataKey="income"
-              fill="#22c55e"
+              fill="#10B981"
               radius={[4, 4, 0, 0]}
               name="Income"
             />
             <Bar
               dataKey="expenses"
-              fill="#ef4444"
+              fill="#EF4444"
               radius={[4, 4, 0, 0]}
               name="Expenses"
             />

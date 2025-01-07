@@ -25,15 +25,15 @@ export default {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "#9b87f5",
+          DEFAULT: "#8B5CF6",
           foreground: "#ffffff",
         },
         income: {
-          DEFAULT: "#22c55e",
+          DEFAULT: "#10B981",
           foreground: "#ffffff",
         },
         expense: {
-          DEFAULT: "#ef4444",
+          DEFAULT: "#EF4444",
           foreground: "#ffffff",
         },
         secondary: {
