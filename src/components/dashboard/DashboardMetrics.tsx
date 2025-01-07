@@ -15,65 +15,65 @@ export const DashboardMetrics = () => {
     expenseChange: 0,
   });
 
+  const calculateMetrics = () => {
+    const savedTransactions = localStorage.getItem(STORAGE_KEY);
+    if (!savedTransactions) return;
+
+    const transactions: Transaction[] = JSON.parse(savedTransactions);
+    
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth();
+    const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    
+    // Current month transactions
+    const currentMonthTransactions = transactions.filter(t => {
+      const transactionDate = new Date(t.date);
+      return transactionDate.getMonth() === currentMonth;
+    });
+
+    // Previous month transactions
+    const previousMonthTransactions = transactions.filter(t => {
+      const transactionDate = new Date(t.date);
+      return transactionDate.getMonth() === previousMonth;
+    });
+
+    // Calculate current month totals
+    const currentIncome = currentMonthTransactions
+      .filter(t => t.type === "income")
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const currentExpenses = currentMonthTransactions
+      .filter(t => t.type === "expense")
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    // Calculate previous month totals
+    const previousIncome = previousMonthTransactions
+      .filter(t => t.type === "income")
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const previousExpenses = previousMonthTransactions
+      .filter(t => t.type === "expense")
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    // Calculate percentage changes
+    const incomeChange = previousIncome === 0 
+      ? 100 
+      : Math.round(((currentIncome - previousIncome) / previousIncome) * 100);
+
+    const expenseChange = previousExpenses === 0 
+      ? 100 
+      : Math.round(((currentExpenses - previousExpenses) / previousExpenses) * 100);
+
+    setMetrics({
+      income: currentIncome,
+      expenses: currentExpenses,
+      balance: currentIncome - currentExpenses,
+      incomeChange,
+      expenseChange,
+    });
+  };
+
   useEffect(() => {
-    const calculateMetrics = () => {
-      const savedTransactions = localStorage.getItem(STORAGE_KEY);
-      if (!savedTransactions) return;
-
-      const transactions: Transaction[] = JSON.parse(savedTransactions);
-      
-      const currentDate = new Date();
-      const currentMonth = currentDate.getMonth();
-      const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-      
-      // Current month transactions
-      const currentMonthTransactions = transactions.filter(t => {
-        const transactionDate = new Date(t.date);
-        return transactionDate.getMonth() === currentMonth;
-      });
-
-      // Previous month transactions
-      const previousMonthTransactions = transactions.filter(t => {
-        const transactionDate = new Date(t.date);
-        return transactionDate.getMonth() === previousMonth;
-      });
-
-      // Calculate current month totals
-      const currentIncome = currentMonthTransactions
-        .filter(t => t.type === "income")
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      const currentExpenses = currentMonthTransactions
-        .filter(t => t.type === "expense")
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      // Calculate previous month totals
-      const previousIncome = previousMonthTransactions
-        .filter(t => t.type === "income")
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      const previousExpenses = previousMonthTransactions
-        .filter(t => t.type === "expense")
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      // Calculate percentage changes
-      const incomeChange = previousIncome === 0 
-        ? 100 
-        : Math.round(((currentIncome - previousIncome) / previousIncome) * 100);
-
-      const expenseChange = previousExpenses === 0 
-        ? 100 
-        : Math.round(((currentExpenses - previousExpenses) / previousExpenses) * 100);
-
-      setMetrics({
-        income: currentIncome,
-        expenses: currentExpenses,
-        balance: currentIncome - currentExpenses,
-        incomeChange,
-        expenseChange,
-      });
-    };
-
     // Initial calculation
     calculateMetrics();
 
@@ -82,14 +82,17 @@ export const DashboardMetrics = () => {
       calculateMetrics();
     };
 
+    // Listen for custom event for local updates
+    const handleTransactionsUpdate = () => {
+      calculateMetrics();
+    };
+
     window.addEventListener('storage', handleStorageChange);
-    
-    // Custom event listener for local updates
-    window.addEventListener('transactionsUpdated', handleStorageChange);
+    window.addEventListener('transactionsUpdated', handleTransactionsUpdate);
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('transactionsUpdated', handleStorageChange);
+      window.removeEventListener('transactionsUpdated', handleTransactionsUpdate);
     };
   }, []);
 
