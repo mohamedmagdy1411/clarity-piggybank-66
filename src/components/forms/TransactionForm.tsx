@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -26,7 +27,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useState } from "react";
-import { Calculator } from "lucide-react";
+import { Calculator, Wand2 } from "lucide-react";
+import { processTransactionText } from "@/services/aiService";
+import { Textarea } from "@/components/ui/textarea";
 
 const transactionSchema = z.object({
   type: z.enum(["income", "expense"]),
@@ -53,6 +56,8 @@ export const TransactionForm = ({
   const { toast } = useToast();
   const [calculatorValue, setCalculatorValue] = useState("");
   const [showCalculator, setShowCalculator] = useState(false);
+  const [aiText, setAiText] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const form = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
@@ -95,6 +100,40 @@ export const TransactionForm = ({
     }
   };
 
+  const handleAIProcess = async () => {
+    if (!aiText.trim()) {
+      toast({
+        title: "Please enter a description of your transaction",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const result = await processTransactionText(aiText);
+      form.setValue("type", result.type);
+      form.setValue("amount", result.amount.toString());
+      form.setValue("category", result.category);
+      form.setValue("description", result.description);
+      setAiText("");
+      toast({
+        title: "Transaction details extracted successfully!",
+        duration: 3000,
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to process transaction text",
+        description: "Please try again with a clearer description",
+        variant: "destructive",
+        duration: 3000,
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -102,7 +141,32 @@ export const TransactionForm = ({
           <DialogTitle>
             {initialData ? "Edit Transaction" : "Add Transaction"}
           </DialogTitle>
+          <DialogDescription>
+            You can either fill in the details manually or describe your transaction below.
+          </DialogDescription>
         </DialogHeader>
+
+        <div className="mb-4">
+          <FormLabel>Describe your transaction</FormLabel>
+          <div className="flex gap-2">
+            <Textarea
+              placeholder="E.g.: I spent $25 on coffee today"
+              value={aiText}
+              onChange={(e) => setAiText(e.target.value)}
+              className="min-h-[60px]"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={handleAIProcess}
+              disabled={isProcessing}
+            >
+              <Wand2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleSubmit)}
