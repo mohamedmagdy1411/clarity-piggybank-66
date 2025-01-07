@@ -1,16 +1,97 @@
 import { Card } from "@/components/ui/card";
 import { ArrowDownIcon, ArrowUpIcon, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
+import { Transaction } from "./RecentTransactions";
+
+const STORAGE_KEY = "clarity_finance_transactions";
 
 export const DashboardMetrics = () => {
-  // Placeholder data - will be replaced with real data later
-  const metrics = {
-    income: 5000,
-    expenses: 3500,
-    balance: 1500,
-    incomeChange: 10, // Percentage change from last month
-    expenseChange: -5, // Percentage change from last month
-  };
+  const [metrics, setMetrics] = useState({
+    income: 0,
+    expenses: 0,
+    balance: 0,
+    incomeChange: 0,
+    expenseChange: 0,
+  });
+
+  useEffect(() => {
+    const calculateMetrics = () => {
+      const savedTransactions = localStorage.getItem(STORAGE_KEY);
+      if (!savedTransactions) return;
+
+      const transactions: Transaction[] = JSON.parse(savedTransactions);
+      
+      const currentDate = new Date();
+      const currentMonth = currentDate.getMonth();
+      const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+      
+      // Current month transactions
+      const currentMonthTransactions = transactions.filter(t => {
+        const transactionDate = new Date(t.date);
+        return transactionDate.getMonth() === currentMonth;
+      });
+
+      // Previous month transactions
+      const previousMonthTransactions = transactions.filter(t => {
+        const transactionDate = new Date(t.date);
+        return transactionDate.getMonth() === previousMonth;
+      });
+
+      // Calculate current month totals
+      const currentIncome = currentMonthTransactions
+        .filter(t => t.type === "income")
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      const currentExpenses = currentMonthTransactions
+        .filter(t => t.type === "expense")
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      // Calculate previous month totals
+      const previousIncome = previousMonthTransactions
+        .filter(t => t.type === "income")
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      const previousExpenses = previousMonthTransactions
+        .filter(t => t.type === "expense")
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      // Calculate percentage changes
+      const incomeChange = previousIncome === 0 
+        ? 100 
+        : Math.round(((currentIncome - previousIncome) / previousIncome) * 100);
+
+      const expenseChange = previousExpenses === 0 
+        ? 100 
+        : Math.round(((currentExpenses - previousExpenses) / previousExpenses) * 100);
+
+      setMetrics({
+        income: currentIncome,
+        expenses: currentExpenses,
+        balance: currentIncome - currentExpenses,
+        incomeChange,
+        expenseChange,
+      });
+    };
+
+    // Initial calculation
+    calculateMetrics();
+
+    // Listen for storage changes
+    const handleStorageChange = () => {
+      calculateMetrics();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Custom event listener for local updates
+    window.addEventListener('transactionsUpdated', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('transactionsUpdated', handleStorageChange);
+    };
+  }, []);
 
   return (
     <div className="grid gap-4 md:grid-cols-3">

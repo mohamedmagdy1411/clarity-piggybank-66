@@ -27,6 +27,10 @@ export type Transaction = {
 
 const STORAGE_KEY = "clarity_finance_transactions";
 
+const notifyTransactionUpdate = () => {
+  window.dispatchEvent(new Event('transactionsUpdated'));
+};
+
 export const RecentTransactions = () => {
   const { toast } = useToast();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -36,14 +40,12 @@ export const RecentTransactions = () => {
     null
   );
 
-  // Load transactions from localStorage on component mount
   useEffect(() => {
     const savedTransactions = localStorage.getItem(STORAGE_KEY);
     if (savedTransactions) {
       setTransactions(JSON.parse(savedTransactions));
     } else {
-      // Set default transactions if none exist
-      const defaultTransactions = [
+      const defaultTransactions: Transaction[] = [
         {
           id: 1,
           type: "income",
@@ -63,16 +65,17 @@ export const RecentTransactions = () => {
       ];
       setTransactions(defaultTransactions);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultTransactions));
+      notifyTransactionUpdate();
     }
   }, []);
 
-  // Save transactions to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
+    notifyTransactionUpdate();
   }, [transactions]);
 
   const handleAddTransaction = (data: any) => {
-    const newTransaction = {
+    const newTransaction: Transaction = {
       id: Math.max(...transactions.map((t) => t.id), 0) + 1,
       ...data,
       amount: parseFloat(data.amount),
