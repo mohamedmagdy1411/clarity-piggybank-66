@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   ShoppingCart,
   Car,
@@ -7,6 +8,8 @@ import {
   Home,
   Coffee,
   Utensils,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +21,8 @@ interface TransactionCardProps {
   category: string;
   description: string;
   date: string;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
 const getCategoryIcon = (category: string) => {
@@ -45,6 +50,8 @@ export const TransactionCard = ({
   category,
   description,
   date,
+  onEdit,
+  onDelete,
 }: TransactionCardProps) => {
   const Icon = getCategoryIcon(category);
   const formattedDate = new Date(date).toLocaleDateString("en-US", {
@@ -74,16 +81,36 @@ export const TransactionCard = ({
           </p>
           <p className="text-xs text-muted-foreground truncate">{category}</p>
         </div>
-        <div className="text-right">
-          <p
-            className={cn(
-              "text-sm font-semibold",
-              type === "income" ? "text-income" : "text-expense"
-            )}
-          >
-            {type === "income" ? "+" : "-"}${amount.toLocaleString()}
-          </p>
-          <p className="text-xs text-muted-foreground">{formattedDate}</p>
+        <div className="text-right flex items-center space-x-4">
+          <div>
+            <p
+              className={cn(
+                "text-sm font-semibold",
+                type === "income" ? "text-income" : "text-expense"
+              )}
+            >
+              {type === "income" ? "+" : "-"}${amount.toLocaleString()}
+            </p>
+            <p className="text-xs text-muted-foreground">{formattedDate}</p>
+          </div>
+          <div className="flex space-x-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={onEdit}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-destructive hover:text-destructive"
+              onClick={onDelete}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
     </Card>
