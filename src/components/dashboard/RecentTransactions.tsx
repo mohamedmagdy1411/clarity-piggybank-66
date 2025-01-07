@@ -44,28 +44,6 @@ export const RecentTransactions = () => {
     const savedTransactions = localStorage.getItem(STORAGE_KEY);
     if (savedTransactions) {
       setTransactions(JSON.parse(savedTransactions));
-    } else {
-      const defaultTransactions: Transaction[] = [
-        {
-          id: 1,
-          type: "income",
-          amount: 2500,
-          category: "Salary",
-          description: "Monthly Salary",
-          date: "2024-02-01",
-        },
-        {
-          id: 2,
-          type: "expense",
-          amount: 50,
-          category: "Shopping",
-          description: "Groceries at Whole Foods",
-          date: "2024-02-02",
-        },
-      ];
-      setTransactions(defaultTransactions);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultTransactions));
-      notifyTransactionUpdate();
     }
   }, []);
 
