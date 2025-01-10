@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { TransactionCard } from "@/components/ui/TransactionCard";
 import { Button } from "@/components/ui/button";
-import { Plus, Wand2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { TransactionForm } from "@/components/forms/TransactionForm";
 import {
   AlertDialog,
@@ -15,7 +15,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { generateTransactionSummary, suggestTransactionEdits } from "@/services/aiService";
 
 export type Transaction = {
   id: number;
@@ -38,9 +37,6 @@ export const RecentTransactions = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-  const [summary, setSummary] = useState<string>("");
-  const [isLoadingSummary, setIsLoadingSummary] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   useEffect(() => {
     const savedTransactions = localStorage.getItem(STORAGE_KEY);
@@ -103,55 +99,6 @@ export const RecentTransactions = () => {
     setIsDeleteDialogOpen(true);
   };
 
-  const analyzeTransaction = async (transaction: Transaction) => {
-    setIsAnalyzing(true);
-    try {
-      const suggestion = await suggestTransactionEdits(transaction);
-      setSelectedTransaction({
-        ...transaction,
-        type: suggestion.type,
-        category: suggestion.category,
-        description: suggestion.description,
-      });
-      setIsFormOpen(true);
-      toast({
-        title: "AI Analysis",
-        description: suggestion.analysis,
-        duration: 5000,
-      });
-    } catch (error) {
-      toast({
-        title: "Failed to analyze transaction",
-        variant: "destructive",
-        duration: 3000,
-      });
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const generateSummary = async () => {
-    setIsLoadingSummary(true);
-    try {
-      const summaryText = await generateTransactionSummary(transactions);
-      setSummary(summaryText);
-    } catch (error) {
-      toast({
-        title: "Failed to generate summary",
-        variant: "destructive",
-        duration: 3000,
-      });
-    } finally {
-      setIsLoadingSummary(false);
-    }
-  };
-
-  useEffect(() => {
-    if (transactions.length > 0) {
-      generateSummary();
-    }
-  }, [transactions]);
-
   return (
     <Card className="p-6">
       <div className="flex items-center justify-between mb-6">
@@ -169,12 +116,6 @@ export const RecentTransactions = () => {
         </Button>
       </div>
 
-      {summary && (
-        <div className="mb-6 p-4 bg-muted rounded-lg">
-          <p className="text-sm text-muted-foreground">{summary}</p>
-        </div>
-      )}
-
       <div className="space-y-4">
         {transactions.map((transaction) => (
           <TransactionCard
@@ -182,8 +123,6 @@ export const RecentTransactions = () => {
             {...transaction}
             onEdit={() => openEditForm(transaction)}
             onDelete={() => openDeleteDialog(transaction)}
-            onAnalyze={() => analyzeTransaction(transaction)}
-            isAnalyzing={isAnalyzing}
           />
         ))}
       </div>

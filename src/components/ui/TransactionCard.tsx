@@ -1,4 +1,4 @@
-import { ArrowDownIcon, ArrowUpIcon, Pencil, Trash2, Wand2 } from "lucide-react";
+import { ArrowDownIcon, ArrowUpIcon, Pencil, Trash2 } from "lucide-react";
 import { Button } from "./button";
 import { cn } from "@/lib/utils";
 
@@ -10,8 +10,6 @@ interface TransactionCardProps {
   date: string;
   onEdit: () => void;
   onDelete: () => void;
-  onAnalyze: () => void;
-  isAnalyzing?: boolean;
 }
 
 export const TransactionCard = ({
@@ -22,8 +20,6 @@ export const TransactionCard = ({
   date,
   onEdit,
   onDelete,
-  onAnalyze,
-  isAnalyzing,
 }: TransactionCardProps) => {
   const isIncome = type === "income";
 
@@ -60,14 +56,6 @@ export const TransactionCard = ({
           <p className="text-sm text-muted-foreground">{date}</p>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onAnalyze}
-            disabled={isAnalyzing}
-          >
-            <Wand2 className="h-4 w-4" />
-          </Button>
           <Button variant="ghost" size="icon" onClick={onEdit}>
             <Pencil className="h-4 w-4" />
           </Button>
