@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface AITransactionResult {
   type: "income" | "expense";
+  amount: string;
   category: string;
   description: string;
   analysis?: string;

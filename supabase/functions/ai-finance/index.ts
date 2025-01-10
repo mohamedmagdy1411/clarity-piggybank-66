@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.1.3";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,6 +28,7 @@ serve(async (req) => {
           Respond in this exact JSON format:
           {
             "type": "income" or "expense",
+            "amount": "numeric value as string",
             "category": "one of: Salary, Bills, Shopping, Transport, Food, Entertainment, Other",
             "description": "a clear, brief description",
             "analysis": "2-3 sentences of financial advice based on this transaction"
