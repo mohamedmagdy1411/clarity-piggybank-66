@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { TransactionCard } from "@/components/ui/TransactionCard";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Wand2 } from "lucide-react";
 import { TransactionForm } from "@/components/forms/TransactionForm";
 import {
   AlertDialog,
@@ -15,7 +15,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { generateTransactionSummary } from "@/services/aiService";
+import { generateTransactionSummary, suggestTransactionEdits } from "@/services/aiService";
 
 export type Transaction = {
   id: number;
@@ -37,12 +37,10 @@ export const RecentTransactions = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(
-    null
-  );
-
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [summary, setSummary] = useState<string>("");
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   useEffect(() => {
     const savedTransactions = localStorage.getItem(STORAGE_KEY);
@@ -105,6 +103,33 @@ export const RecentTransactions = () => {
     setIsDeleteDialogOpen(true);
   };
 
+  const analyzeTransaction = async (transaction: Transaction) => {
+    setIsAnalyzing(true);
+    try {
+      const suggestion = await suggestTransactionEdits(transaction);
+      setSelectedTransaction({
+        ...transaction,
+        type: suggestion.type,
+        category: suggestion.category,
+        description: suggestion.description,
+      });
+      setIsFormOpen(true);
+      toast({
+        title: "AI Analysis",
+        description: suggestion.analysis,
+        duration: 5000,
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to analyze transaction",
+        variant: "destructive",
+        duration: 3000,
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const generateSummary = async () => {
     setIsLoadingSummary(true);
     try {
@@ -157,6 +182,8 @@ export const RecentTransactions = () => {
             {...transaction}
             onEdit={() => openEditForm(transaction)}
             onDelete={() => openDeleteDialog(transaction)}
+            onAnalyze={() => analyzeTransaction(transaction)}
+            isAnalyzing={isAnalyzing}
           />
         ))}
       </div>
@@ -165,16 +192,12 @@ export const RecentTransactions = () => {
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
         onSubmit={selectedTransaction ? handleEditTransaction : handleAddTransaction}
-        initialData={
-          selectedTransaction
-            ? {
-                type: selectedTransaction.type,
-                amount: selectedTransaction.amount.toString(),
-                category: selectedTransaction.category,
-                description: selectedTransaction.description,
-              }
-            : undefined
-        }
+        initialData={selectedTransaction ? {
+          type: selectedTransaction.type,
+          amount: selectedTransaction.amount.toString(),
+          category: selectedTransaction.category,
+          description: selectedTransaction.description,
+        } : undefined}
       />
 
       <AlertDialog
