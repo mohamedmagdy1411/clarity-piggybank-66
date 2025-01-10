@@ -15,6 +15,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
+import { generateTransactionSummary } from "@/services/aiService";
 
 export type Transaction = {
   id: number;
@@ -39,6 +40,9 @@ export const RecentTransactions = () => {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(
     null
   );
+
+  const [summary, setSummary] = useState<string>("");
+  const [isLoadingSummary, setIsLoadingSummary] = useState(false);
 
   useEffect(() => {
     const savedTransactions = localStorage.getItem(STORAGE_KEY);
@@ -101,6 +105,28 @@ export const RecentTransactions = () => {
     setIsDeleteDialogOpen(true);
   };
 
+  const generateSummary = async () => {
+    setIsLoadingSummary(true);
+    try {
+      const summaryText = await generateTransactionSummary(transactions);
+      setSummary(summaryText);
+    } catch (error) {
+      toast({
+        title: "Failed to generate summary",
+        variant: "destructive",
+        duration: 3000,
+      });
+    } finally {
+      setIsLoadingSummary(false);
+    }
+  };
+
+  useEffect(() => {
+    if (transactions.length > 0) {
+      generateSummary();
+    }
+  }, [transactions]);
+
   return (
     <Card className="p-6">
       <div className="flex items-center justify-between mb-6">
@@ -117,6 +143,13 @@ export const RecentTransactions = () => {
           Add Transaction
         </Button>
       </div>
+
+      {summary && (
+        <div className="mb-6 p-4 bg-muted rounded-lg">
+          <p className="text-sm text-muted-foreground">{summary}</p>
+        </div>
+      )}
+
       <div className="space-y-4">
         {transactions.map((transaction) => (
           <TransactionCard
