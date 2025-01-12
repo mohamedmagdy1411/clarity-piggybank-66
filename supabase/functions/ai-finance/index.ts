@@ -12,11 +12,13 @@ serve(async (req) => {
   }
 
   try {
-    const { text, action } = await req.json();
+    const { action, data } = await req.json();
     const genAI = new GoogleGenerativeAI(Deno.env.get('GOOGLE_AI_KEY'));
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-    if (action === "process") {
+    if (action === "analyze" || action === "process") {
+      const description = action === "analyze" ? data.description : data;
+      
       const prompt = `
         Analyze this transaction description and extract the following information:
         - Type (income or expense)
@@ -30,9 +32,9 @@ serve(async (req) => {
         - If no amount is found, return "0"
         - If no clear category is found, use "Shopping" as default
 
-        Text to analyze: "${text}"
+        Text to analyze: "${description}"
 
-        Return ONLY a JSON object with these exact keys: type, amount, category, description
+        Return ONLY a JSON object with these exact keys: type, amount, category, description, analysis
       `;
 
       const result = await model.generateContent(prompt);
