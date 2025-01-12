@@ -27,9 +27,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useState } from "react";
-import { Calculator, Wand2 } from "lucide-react";
-import { processTransactionText, suggestTransactionEdits } from "@/services/aiService";
-import { Textarea } from "@/components/ui/textarea";
+import { Calculator } from "lucide-react";
 
 const transactionSchema = z.object({
   type: z.enum(["income", "expense"]),
@@ -56,8 +54,6 @@ export const TransactionForm = ({
   const { toast } = useToast();
   const [calculatorValue, setCalculatorValue] = useState("");
   const [showCalculator, setShowCalculator] = useState(false);
-  const [aiText, setAiText] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
 
   const form = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
@@ -100,65 +96,6 @@ export const TransactionForm = ({
     }
   };
 
-  const handleAIProcess = async () => {
-    if (!aiText.trim()) {
-      toast({
-        title: "Please enter a description of your transaction",
-        variant: "destructive",
-        duration: 3000,
-      });
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      const result = await processTransactionText(aiText);
-      form.setValue("type", result.type);
-      form.setValue("amount", result.amount.toString());
-      form.setValue("category", result.category);
-      form.setValue("description", result.description);
-      setAiText("");
-      toast({
-        title: "Transaction details extracted successfully!",
-        duration: 3000,
-      });
-    } catch (error) {
-      toast({
-        title: "Failed to process transaction text",
-        description: "Please try again with a clearer description",
-        variant: "destructive",
-        duration: 3000,
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleAISuggestions = async () => {
-    if (!initialData) return;
-
-    setIsProcessing(true);
-    try {
-      const suggestions = await suggestTransactionEdits(initialData);
-      form.setValue("type", suggestions.type);
-      form.setValue("amount", suggestions.amount.toString());
-      form.setValue("category", suggestions.category);
-      form.setValue("description", suggestions.description);
-      toast({
-        title: "AI suggestions applied!",
-        duration: 3000,
-      });
-    } catch (error) {
-      toast({
-        title: "Failed to get AI suggestions",
-        variant: "destructive",
-        duration: 3000,
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -167,9 +104,7 @@ export const TransactionForm = ({
             {initialData ? "Edit Transaction" : "Add Transaction"}
           </DialogTitle>
           <DialogDescription>
-            {initialData 
-              ? "Edit transaction details or get AI suggestions"
-              : "You can either fill in the details manually or describe your transaction below."}
+            Fill in the transaction details below.
           </DialogDescription>
         </DialogHeader>
 
@@ -178,45 +113,6 @@ export const TransactionForm = ({
             onSubmit={form.handleSubmit(handleSubmit)}
             className="space-y-4"
           >
-            {!initialData && (
-              <FormItem>
-                <FormLabel>Describe your transaction</FormLabel>
-                <div className="flex gap-2">
-                  <Textarea
-                    placeholder="E.g.: I spent $25 on coffee today"
-                    value={aiText}
-                    onChange={(e) => setAiText(e.target.value)}
-                    className="min-h-[60px]"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={handleAIProcess}
-                    disabled={isProcessing}
-                  >
-                    <Wand2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </FormItem>
-            )}
-
-            {initialData && (
-              <div className="flex justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAISuggestions}
-                  disabled={isProcessing}
-                  className="gap-2"
-                >
-                  <Wand2 className="h-4 w-4" />
-                  Get AI Suggestions
-                </Button>
-              </div>
-            )}
-
             <FormField
               control={form.control}
               name="type"

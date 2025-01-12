@@ -2,7 +2,6 @@ import { Header } from "@/components/layout/Header";
 import { DashboardMetrics } from "@/components/dashboard/DashboardMetrics";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { FinancialOverview } from "@/components/charts/FinancialOverview";
-import { AIAnalysis } from "@/components/dashboard/AIAnalysis";
 
 const Index = () => {
   return (
@@ -16,10 +15,7 @@ const Index = () => {
               <RecentTransactions />
             </div>
             <div>
-              <AIAnalysis />
-              <div className="mt-8">
-                <FinancialOverview />
-              </div>
+              <FinancialOverview />
             </div>
           </div>
         </div>
