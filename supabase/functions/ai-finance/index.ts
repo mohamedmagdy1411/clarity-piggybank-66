@@ -38,7 +38,7 @@ serve(async (req) => {
 
         Text to analyze: "${description}"
 
-        Return the response in this exact JSON format:
+        Return ONLY a valid JSON object with these exact fields:
         {
           "type": "income|expense",
           "amount": "number as string",
@@ -52,11 +52,13 @@ serve(async (req) => {
       const response = result.response;
       const textResult = response.text();
       
+      console.log('AI Response:', textResult);
+
       try {
         // Try to parse the AI response as JSON
-        const jsonResult = JSON.parse(textResult);
+        const jsonResult = JSON.parse(textResult.trim());
         
-        // Validate required fields
+        // Validate required fields and types
         const requiredFields = ['type', 'amount', 'category', 'description', 'analysis'];
         const missingFields = requiredFields.filter(field => !(field in jsonResult));
         
@@ -64,14 +66,28 @@ serve(async (req) => {
           throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
         }
 
-        // Return the parsed and validated result
+        // Validate type field
+        if (!['income', 'expense'].includes(jsonResult.type)) {
+          throw new Error('Invalid type value. Must be "income" or "expense"');
+        }
+
+        // Validate category field
+        const validCategories = ['Salary', 'Shopping', 'Transport', 'Coffee', 'Rent'];
+        if (!validCategories.includes(jsonResult.category)) {
+          jsonResult.category = 'Shopping'; // Default to Shopping if invalid
+        }
+
+        // Ensure amount is a string
+        jsonResult.amount = String(jsonResult.amount);
+
         return new Response(
           JSON.stringify({ result: JSON.stringify(jsonResult) }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       } catch (e) {
         console.error("Failed to parse AI response:", textResult);
-        throw new Error("Invalid AI response format");
+        console.error("Parse error:", e);
+        throw new Error(`Invalid AI response format: ${e.message}`);
       }
     }
 
