@@ -17,14 +17,15 @@ serve(async (req) => {
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
     if (action === "analyze" || action === "process") {
-      const description = action === "analyze" ? data.description : data;
+      const description = action === "analyze" ? data.text || data.description : data;
       
       const prompt = `
-        Analyze this transaction description and extract the following information:
+        Analyze this transaction description and extract the following information in JSON format:
         - Type (income or expense)
         - Amount (just the number)
         - Category (must be one of: Salary, Shopping, Transport, Coffee, Rent)
         - Description (a clean, brief description)
+        - Analysis (a brief analysis of the transaction)
 
         Important: 
         - If the text mentions transportation, bus, train, taxi, uber, or similar words, always categorize it as "Transport"
@@ -34,7 +35,14 @@ serve(async (req) => {
 
         Text to analyze: "${description}"
 
-        Return ONLY a JSON object with these exact keys: type, amount, category, description, analysis
+        Return the response in this exact JSON format:
+        {
+          "type": "income|expense",
+          "amount": "number as string",
+          "category": "one of the allowed categories",
+          "description": "cleaned description",
+          "analysis": "brief analysis"
+        }
       `;
 
       const result = await model.generateContent(prompt);
@@ -42,9 +50,20 @@ serve(async (req) => {
       const textResult = response.text();
       
       try {
+        // Try to parse the AI response as JSON
         const jsonResult = JSON.parse(textResult);
+        
+        // Validate required fields
+        const requiredFields = ['type', 'amount', 'category', 'description', 'analysis'];
+        const missingFields = requiredFields.filter(field => !(field in jsonResult));
+        
+        if (missingFields.length > 0) {
+          throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+        }
+
+        // Return the parsed and validated result
         return new Response(
-          JSON.stringify(jsonResult),
+          JSON.stringify({ result: JSON.stringify(jsonResult) }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       } catch (e) {
