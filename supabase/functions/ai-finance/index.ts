@@ -1,5 +1,7 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { GoogleGenerativeAI } from "npm:@google/generative-ai";
+
+const genAIKey = Deno.env.get('GOOGLE_AI_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,14 +15,14 @@ serve(async (req) => {
 
   try {
     const { action, data } = await req.json();
-    const genAI = new GoogleGenerativeAI(Deno.env.get('GOOGLE_AI_KEY'));
+    const genAI = new GoogleGenerativeAI(genAIKey);
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
     if (action === "analyze" || action === "process") {
       const description = action === "analyze" ? data.text || data.description : data;
       
       const prompt = `
-        Analyze this transaction description and extract the following information in JSON format:
+        Analyze this transaction description in any language (including Arabic) and extract the following information in JSON format:
         - Type (income or expense)
         - Amount (just the number)
         - Category (must be one of: Salary, Shopping, Transport, Coffee, Rent)
@@ -28,10 +30,11 @@ serve(async (req) => {
         - Analysis (a brief analysis of the transaction)
 
         Important: 
-        - If the text mentions transportation, bus, train, taxi, uber, or similar words, always categorize it as "Transport"
-        - For amounts, extract only the number (e.g., from "$50" just return "50")
+        - If the text mentions transportation, bus, train, taxi, uber, or similar words in any language, always categorize it as "Transport"
+        - For amounts, extract only the number (e.g., from "50 جنيه" just return "50")
         - If no amount is found, return "0"
         - If no clear category is found, use "Shopping" as default
+        - Support Arabic text like "صرفت 50 جنيه" or "دفعت 100 جنيه"
 
         Text to analyze: "${description}"
 
