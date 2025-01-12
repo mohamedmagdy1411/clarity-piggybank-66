@@ -1,7 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const genAIKey = Deno.env.get('GOOGLE_AI_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,7 +12,10 @@ serve(async (req) => {
 
   try {
     const { action, data } = await req.json();
-    const genAI = new GoogleGenerativeAI(genAIKey);
+    
+    // Import Google AI dynamically to avoid Deno import issues
+    const { GoogleGenerativeAI } = await import("npm:@google/generative-ai@0.1.3");
+    const genAI = new GoogleGenerativeAI(Deno.env.get('GOOGLE_AI_KEY'));
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
     if (action === "analyze" || action === "process") {
