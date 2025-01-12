@@ -6,23 +6,30 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const PROMPT_TEMPLATE = `You are a helpful financial assistant. Extract transaction details from the user's input.
-Return a JSON object with these fields:
+const PROMPT_TEMPLATE = `You are a helpful financial assistant. Extract ALL transaction details from the user's input.
+Return a JSON array containing objects with these fields for EACH transaction mentioned:
 - type: "income" or "expense"
 - amount: number (extract just the number)
 - category: string (one of: Salary, Shopping, Transport, Coffee, Rent)
 - description: string (a brief description of the transaction)
 
-Example input: "I spent $25 on coffee and snacks yesterday"
-Example output: {
-  "type": "expense",
-  "amount": 25,
-  "category": "Coffee",
-  "description": "Coffee and snacks"
-}`;
+Example input: "I spent $25 on coffee and then got $1000 salary payment"
+Example output: [
+  {
+    "type": "expense",
+    "amount": 25,
+    "category": "Coffee",
+    "description": "Coffee purchase"
+  },
+  {
+    "type": "income",
+    "amount": 1000,
+    "category": "Salary",
+    "description": "Salary payment"
+  }
+]`;
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -41,11 +48,10 @@ serve(async (req) => {
     
     console.log('AI Response:', text);
     
-    // Extract the JSON object from the response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    const parsedResponse = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    const parsedResponse = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
 
-    if (!parsedResponse) {
+    if (!Array.isArray(parsedResponse)) {
       throw new Error('Failed to parse transaction details from AI response');
     }
 
