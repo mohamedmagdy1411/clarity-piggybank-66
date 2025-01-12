@@ -28,6 +28,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useState } from "react";
 import { Calculator } from "lucide-react";
+import { TransactionAIChat } from "@/components/ai/TransactionAIChat";
 
 const transactionSchema = z.object({
   type: z.enum(["income", "expense"]),
@@ -75,6 +76,13 @@ export const TransactionForm = ({
     });
   };
 
+  const handleAIExtraction = (data: TransactionFormData) => {
+    form.setValue("type", data.type);
+    form.setValue("amount", data.amount.toString());
+    form.setValue("category", data.category);
+    form.setValue("description", data.description);
+  };
+
   const handleCalculatorInput = (value: string) => {
     if (value === "=") {
       try {
@@ -104,15 +112,16 @@ export const TransactionForm = ({
             {initialData ? "Edit Transaction" : "Add Transaction"}
           </DialogTitle>
           <DialogDescription>
-            Fill in the transaction details below.
+            Fill in the transaction details below or describe it naturally.
           </DialogDescription>
         </DialogHeader>
 
+        <div className="mb-4">
+          <TransactionAIChat onTransactionExtracted={handleAIExtraction} />
+        </div>
+
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(handleSubmit)}
-            className="space-y-4"
-          >
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="type"

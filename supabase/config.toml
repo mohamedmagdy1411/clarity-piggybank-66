@@ -1,1 +1,8 @@
 project_id = "klvuxfxvevksilkzfopv"
+
+[api]
+enabled = true
+url = "https://klvuxfxvevksilkzfopv.supabase.co"
+
+[functions.analyze-transaction]
+verify_jwt = false
