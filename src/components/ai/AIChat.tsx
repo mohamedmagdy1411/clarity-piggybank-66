@@ -3,8 +3,31 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
+
+const STORAGE_KEY = "clarity_finance_transactions";
+
+type Transaction = {
+  id: number;
+  type: "income" | "expense";
+  amount: number;
+  category: string;
+  description: string;
+  date: string;
+};
+
+const analyzeMessage = (message: string) => {
+  // Simple analysis of Arabic text
+  const isExpense = message.includes("صرفت") || message.includes("اشتريت") || message.includes("دفعت");
+  const amount = parseFloat(message.replace(/[^\d.]/g, ""));
+  
+  return {
+    type: isExpense ? "expense" : "income",
+    amount: amount || 0,
+    category: isExpense ? "Shopping" : "Income",
+    description: message,
+  };
+};
 
 export const AIChat = () => {
   const [messages, setMessages] = useState<string[]>([]);
@@ -12,38 +35,25 @@ export const AIChat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const analyzeTransaction = async (message: string) => {
+  const addTransaction = (transactionData: Omit<Transaction, "id" | "date">) => {
     try {
-      const { data, error } = await supabase.functions.invoke('analyze-transaction', {
-        body: { message }
-      });
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error("Error analyzing transaction:", error);
-      throw error;
-    }
-  };
-
-  const addTransaction = async (transactionData: any) => {
-    try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) throw new Error("User not authenticated");
-
-      const { error } = await supabase.from("transactions").insert([
-        {
-          user_id: user.user.id,
-          type: transactionData.type,
-          amount: parseFloat(transactionData.amount),
-          category: transactionData.category,
-          description: transactionData.description,
-          date: new Date().toISOString(),
-        },
-      ]);
-
-      if (error) throw error;
-
+      // Get existing transactions
+      const savedTransactions = localStorage.getItem(STORAGE_KEY);
+      const transactions: Transaction[] = savedTransactions ? JSON.parse(savedTransactions) : [];
+      
+      // Create new transaction
+      const newTransaction: Transaction = {
+        id: Math.max(...transactions.map(t => t.id), 0) + 1,
+        ...transactionData,
+        date: new Date().toISOString().split("T")[0],
+      };
+      
+      // Add to beginning of array
+      const updatedTransactions = [newTransaction, ...transactions];
+      
+      // Save back to localStorage
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedTransactions));
+      
       // Notify other components about the update
       window.dispatchEvent(new Event("transactionsUpdated"));
 
@@ -70,10 +80,8 @@ export const AIChat = () => {
     setMessages((prev) => [...prev, input]);
     
     try {
-      const analysis = await analyzeTransaction(input);
-      if (analysis && analysis.transaction) {
-        await addTransaction(analysis.transaction);
-      }
+      const analysis = analyzeMessage(input);
+      addTransaction(analysis);
     } catch (error) {
       console.error("Error processing message:", error);
       toast({
