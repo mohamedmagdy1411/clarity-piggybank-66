@@ -26,12 +26,33 @@ export const AIChat = () => {
       if (error) throw error;
 
       if (Array.isArray(data) && data.length > 0) {
-        setExtractedTransactions(prev => [...prev, ...data]);
+        // Add each transaction to the database
+        for (const transaction of data) {
+          const { error: insertError } = await supabase
+            .from('transactions')
+            .insert([{
+              type: transaction.type,
+              amount: transaction.amount,
+              category: transaction.category,
+              description: transaction.description,
+              date: new Date().toISOString().split('T')[0],
+            }]);
+
+          if (insertError) {
+            console.error('Error inserting transaction:', insertError);
+            toast({
+              title: "خطأ في إضافة المعاملة",
+              description: "حدث خطأ أثناء حفظ المعاملة",
+              variant: "destructive",
+            });
+            continue;
+          }
+        }
+
         setMessage("");
-        
         toast({
-          title: `تم استخراج ${data.length} معاملة ${data.length === 1 ? '' : 'معاملات'}`,
-          description: "تم تحليل معاملاتك بنجاح.",
+          title: `تم إضافة ${data.length} معاملة ${data.length === 1 ? '' : 'معاملات'}`,
+          description: "تم حفظ معاملاتك بنجاح.",
         });
       } else {
         toast({
@@ -57,7 +78,7 @@ export const AIChat = () => {
       <div className="space-y-4">
         <h2 className="text-2xl font-bold">مساعد المعاملات المالية</h2>
         <p className="text-muted-foreground">
-          صف معاملاتك بلغتك الطبيعية وسأساعدك في تحليلها.
+          صف معاملاتك بلغتك الطبيعية وسأساعدك في تحليلها وإضافتها تلقائياً.
         </p>
         
         <form onSubmit={handleSubmit} className="flex gap-2">
@@ -79,31 +100,6 @@ export const AIChat = () => {
             )}
           </Button>
         </form>
-
-        {extractedTransactions.length > 0 && (
-          <ScrollArea className="h-[400px] rounded-md border p-4">
-            <div className="space-y-2">
-              {extractedTransactions.map((transaction, index) => (
-                <Card
-                  key={index}
-                  className="p-4"
-                >
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">{transaction.description}</p>
-                      <p className="text-sm text-muted-foreground">{transaction.category}</p>
-                    </div>
-                    <p className={`font-semibold ${
-                      transaction.type === 'income' ? 'text-green-500' : 'text-red-500'
-                    }`}>
-                      {transaction.type === 'income' ? '+' : '-'} {transaction.amount} جنيه
-                    </p>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </ScrollArea>
-        )}
       </div>
     </Card>
   );

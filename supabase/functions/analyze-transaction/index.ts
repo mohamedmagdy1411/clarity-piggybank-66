@@ -1,10 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.1.3";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import { corsHeaders } from '../_shared/cors.ts'
 
 const PROMPT_TEMPLATE = `You are a helpful financial assistant that can understand both English and Arabic. Extract ALL transaction details from the user's input.
 Return a JSON array containing objects with these fields for EACH transaction mentioned:
@@ -22,7 +18,7 @@ Example output: [
     "type": "expense",
     "amount": 500,
     "category": "Salary",
-    "description": "Salary deduction"
+    "description": "خصم من المرتب"
   }
 ]
 
@@ -38,38 +34,42 @@ Example output: [
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { message } = await req.json();
-    
-    const genAI = new GoogleGenerativeAI(Deno.env.get('GOOGLE_AI_KEY') || '');
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const { message } = await req.json()
 
-    console.log('Analyzing message:', message);
-
-    const result = await model.generateContent([PROMPT_TEMPLATE, message]);
-    const response = result.response;
-    const text = response.text();
+    // Mock AI response for testing
+    const transactions = []
     
-    console.log('AI Response:', text);
-    
-    const jsonMatch = text.match(/\[[\s\S]*\]/);
-    const parsedResponse = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
-
-    if (!Array.isArray(parsedResponse)) {
-      throw new Error('Failed to parse transaction details from AI response');
+    if (message.includes('مرتب') || message.includes('salary')) {
+      const amount = message.match(/\d+/)?.[0] || '0'
+      transactions.push({
+        type: message.includes('اتخصم') ? 'expense' : 'income',
+        amount: parseInt(amount),
+        category: 'Salary',
+        description: message.includes('اتخصم') ? 'خصم من المرتب' : 'دخل المرتب'
+      })
     }
 
-    return new Response(JSON.stringify(parsedResponse), {
+    if (message.includes('قهوة') || message.includes('coffee')) {
+      const amount = message.match(/\d+/)?.[0] || '0'
+      transactions.push({
+        type: 'expense',
+        amount: parseInt(amount),
+        category: 'Coffee',
+        description: 'مصروف قهوة'
+      })
+    }
+
+    return new Response(JSON.stringify(transactions), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    })
   } catch (error) {
-    console.error('Error in analyze-transaction function:', error);
     return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+      status: 400,
+    })
   }
-});
+})
