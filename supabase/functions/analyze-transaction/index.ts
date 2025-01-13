@@ -1,75 +1,83 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
-import { corsHeaders } from '../_shared/cors.ts'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.1.3";
 
-const PROMPT_TEMPLATE = `You are a helpful financial assistant that can understand both English and Arabic. Extract ALL transaction details from the user's input.
-Return a JSON array containing objects with these fields for EACH transaction mentioned:
-- type: "income" or "expense"
-- amount: number (extract just the number)
-- category: string (one of: Salary, Shopping, Transport, Coffee, Rent)
-- description: string (a brief description of the transaction)
-
-Handle Arabic text like "اتخصم من مرتبي ٥٠٠ جنيه" or "صرفت ٢٠٠ جنيه على القهوة"
-Convert Arabic numbers (٠١٢٣٤٥٦٧٨٩) to regular numbers if present.
-
-Example Arabic input: "اتخصم من مرتبي ٥٠٠ جنيه"
-Example output: [
-  {
-    "type": "expense",
-    "amount": 500,
-    "category": "Salary",
-    "description": "خصم من المرتب"
-  }
-]
-
-Example English input: "spent $25 on coffee"
-Example output: [
-  {
-    "type": "expense",
-    "amount": 25,
-    "category": "Coffee",
-    "description": "Coffee purchase"
-  }
-]`;
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { message } = await req.json()
+    const { message } = await req.json();
 
-    // Mock AI response for testing
-    const transactions = []
+    // Initialize Google AI
+    const genAI = new GoogleGenerativeAI(Deno.env.get("GOOGLE_AI_KEY") || "");
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+    const prompt = `
+    Analyze this financial transaction description in Arabic and extract the following information:
+    - Type (income/expense)
+    - Amount (as a number)
+    - Category (one of: Salary, Shopping, Transport, Coffee, Rent)
+    - Description
+
+    Message: "${message}"
+
+    Respond in JSON format like this:
+    {
+      "transaction": {
+        "type": "income" or "expense",
+        "amount": number,
+        "category": "category",
+        "description": "description"
+      }
+    }
+
+    Rules:
+    - If it mentions "مرتب" or "راتب", categorize as "Salary"
+    - If it mentions "اتخصم" or "دفعت", it's an expense
+    - If amount is in Arabic numerals, convert to standard numbers
+    - Default to "expense" if type is unclear
+    - Choose the closest matching category
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
     
-    if (message.includes('مرتب') || message.includes('salary')) {
-      const amount = message.match(/\d+/)?.[0] || '0'
-      transactions.push({
-        type: message.includes('اتخصم') ? 'expense' : 'income',
-        amount: parseInt(amount),
-        category: 'Salary',
-        description: message.includes('اتخصم') ? 'خصم من المرتب' : 'دخل المرتب'
-      })
+    // Parse the response and validate
+    let parsedResponse;
+    try {
+      parsedResponse = JSON.parse(text);
+      
+      // Basic validation
+      if (!parsedResponse.transaction ||
+          !["income", "expense"].includes(parsedResponse.transaction.type) ||
+          typeof parsedResponse.transaction.amount !== "number" ||
+          !parsedResponse.transaction.category ||
+          !parsedResponse.transaction.description) {
+        throw new Error("Invalid response format");
+      }
+    } catch (error) {
+      console.error("Error parsing AI response:", error);
+      throw new Error("Failed to parse transaction details");
     }
 
-    if (message.includes('قهوة') || message.includes('coffee')) {
-      const amount = message.match(/\d+/)?.[0] || '0'
-      transactions.push({
-        type: 'expense',
-        amount: parseInt(amount),
-        category: 'Coffee',
-        description: 'مصروف قهوة'
-      })
-    }
-
-    return new Response(JSON.stringify(transactions), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return new Response(JSON.stringify(parsedResponse), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
-    })
+    console.error("Error:", error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   }
-})
+});
