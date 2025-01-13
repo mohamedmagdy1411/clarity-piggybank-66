@@ -6,26 +6,33 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const PROMPT_TEMPLATE = `You are a helpful financial assistant. Extract ALL transaction details from the user's input.
+const PROMPT_TEMPLATE = `You are a helpful financial assistant that can understand both English and Arabic. Extract ALL transaction details from the user's input.
 Return a JSON array containing objects with these fields for EACH transaction mentioned:
 - type: "income" or "expense"
 - amount: number (extract just the number)
 - category: string (one of: Salary, Shopping, Transport, Coffee, Rent)
 - description: string (a brief description of the transaction)
 
-Example input: "I spent $25 on coffee and then got $1000 salary payment"
+Handle Arabic text like "اتخصم من مرتبي ٥٠٠ جنيه" or "صرفت ٢٠٠ جنيه على القهوة"
+Convert Arabic numbers (٠١٢٣٤٥٦٧٨٩) to regular numbers if present.
+
+Example Arabic input: "اتخصم من مرتبي ٥٠٠ جنيه"
+Example output: [
+  {
+    "type": "expense",
+    "amount": 500,
+    "category": "Salary",
+    "description": "Salary deduction"
+  }
+]
+
+Example English input: "spent $25 on coffee"
 Example output: [
   {
     "type": "expense",
     "amount": 25,
     "category": "Coffee",
     "description": "Coffee purchase"
-  },
-  {
-    "type": "income",
-    "amount": 1000,
-    "category": "Salary",
-    "description": "Salary payment"
   }
 ]`;
 

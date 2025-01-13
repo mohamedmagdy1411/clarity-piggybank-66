@@ -25,18 +25,26 @@ export const AIChat = () => {
 
       if (error) throw error;
 
-      setExtractedTransactions(prev => [...prev, ...data]);
-      setMessage("");
-      
-      toast({
-        title: `${data.length} transaction${data.length === 1 ? '' : 's'} extracted!`,
-        description: "Your transactions have been analyzed.",
-      });
+      if (Array.isArray(data) && data.length > 0) {
+        setExtractedTransactions(prev => [...prev, ...data]);
+        setMessage("");
+        
+        toast({
+          title: `تم استخراج ${data.length} معاملة ${data.length === 1 ? '' : 'معاملات'}`,
+          description: "تم تحليل معاملاتك بنجاح.",
+        });
+      } else {
+        toast({
+          title: "لم يتم العثور على معاملات",
+          description: "الرجاء المحاولة مرة أخرى بوصف مختلف.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error('Error analyzing transaction:', error);
       toast({
-        title: "Error analyzing transaction",
-        description: "Please try again with a different description.",
+        title: "خطأ في تحليل المعاملة",
+        description: "الرجاء المحاولة مرة أخرى بوصف مختلف.",
         variant: "destructive",
       });
     } finally {
@@ -47,16 +55,16 @@ export const AIChat = () => {
   return (
     <Card className="p-6">
       <div className="space-y-4">
-        <h2 className="text-2xl font-bold">AI Transaction Assistant</h2>
+        <h2 className="text-2xl font-bold">مساعد المعاملات المالية</h2>
         <p className="text-muted-foreground">
-          Describe your transactions in natural language and I'll help you analyze them.
+          صف معاملاتك بلغتك الطبيعية وسأساعدك في تحليلها.
         </p>
         
         <form onSubmit={handleSubmit} className="flex gap-2">
           <Input
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Describe your transactions... (e.g., 'Spent $25 on coffee and got $1000 salary')"
+            placeholder="صف معاملاتك... (مثال: 'اتخصم من مرتبي ٥٠٠ جنيه' أو 'صرفت ٢٠٠ جنيه على القهوة')"
             disabled={isLoading}
             className="flex-1"
           />
@@ -64,10 +72,10 @@ export const AIChat = () => {
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Analyzing
+                جاري التحليل
               </>
             ) : (
-              "Analyze"
+              "تحليل"
             )}
           </Button>
         </form>
@@ -88,7 +96,7 @@ export const AIChat = () => {
                     <p className={`font-semibold ${
                       transaction.type === 'income' ? 'text-green-500' : 'text-red-500'
                     }`}>
-                      {transaction.type === 'income' ? '+' : '-'}${transaction.amount}
+                      {transaction.type === 'income' ? '+' : '-'} {transaction.amount} جنيه
                     </p>
                   </div>
                 </Card>
