@@ -14,15 +14,11 @@ export const AIChat = () => {
 
   const analyzeTransaction = async (message: string) => {
     try {
-      const response = await fetch("/api/functions/v1/analyze-transaction", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
+      const { data, error } = await supabase.functions.invoke('analyze-transaction', {
+        body: { message }
       });
 
-      if (!response.ok) throw new Error("Failed to analyze transaction");
-
-      const data = await response.json();
+      if (error) throw error;
       return data;
     } catch (error) {
       console.error("Error analyzing transaction:", error);
