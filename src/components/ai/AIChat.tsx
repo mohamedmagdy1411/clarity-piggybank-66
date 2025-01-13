@@ -16,13 +16,13 @@ type Transaction = {
   date: string;
 };
 
-const analyzeMessage = (message: string) => {
+const analyzeMessage = (message: string): Omit<Transaction, "id" | "date"> => {
   // Simple analysis of Arabic text
   const isExpense = message.includes("صرفت") || message.includes("اشتريت") || message.includes("دفعت");
   const amount = parseFloat(message.replace(/[^\d.]/g, ""));
   
   return {
-    type: isExpense ? "expense" : "income",
+    type: isExpense ? "expense" : "income" as const,
     amount: amount || 0,
     category: isExpense ? "Shopping" : "Income",
     description: message,
