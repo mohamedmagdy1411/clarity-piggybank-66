@@ -15,42 +15,57 @@ type Transaction = {
   date: string;
 };
 
-const analyzeMessage = (message: string): Omit<Transaction, "id" | "date"> => {
-  // Enhanced Arabic text analysis
+const analyzeMessage = (message: string): Omit<Transaction, "id" | "date"> | null => {
+  // Enhanced Arabic text analysis with more keywords and patterns
   const isExpense = message.includes("صرفت") || 
                    message.includes("اشتريت") || 
                    message.includes("دفعت") ||
                    message.includes("انفقت") ||
-                   message.includes("خسرت");
+                   message.includes("خسرت") ||
+                   message.includes("مصروف") ||
+                   message.includes("مصاريف") ||
+                   message.includes("تكلفة");
                    
   const isIncome = message.includes("استلمت") || 
                   message.includes("ربحت") || 
                   message.includes("دخل") ||
                   message.includes("راتب") ||
-                  message.includes("مكافأة");
+                  message.includes("مكافأة") ||
+                  message.includes("ايراد") ||
+                  message.includes("حصلت على") ||
+                  message.includes("كسبت");
 
-  // Extract amount using regex
-  const numberMatch = message.match(/\d+(\.\d+)?/);
-  const amount = numberMatch ? parseFloat(numberMatch[0]) : 0;
+  // Extract amount using enhanced regex pattern
+  const numberPattern = /\d+(\.\d+)?/g;
+  const numbers = message.match(numberPattern);
+  const amount = numbers ? Math.max(...numbers.map(n => parseFloat(n))) : 0;
 
-  // Determine category based on keywords
+  // Enhanced category detection
   let category = "أخرى";
-  if (message.includes("طعام") || message.includes("مطعم") || message.includes("أكل")) {
+  if (message.includes("طعام") || message.includes("مطعم") || message.includes("أكل") || message.includes("وجبة")) {
     category = "طعام";
-  } else if (message.includes("مواصلات") || message.includes("سيارة") || message.includes("بنزين")) {
+  } else if (message.includes("مواصلات") || message.includes("سيارة") || message.includes("بنزين") || message.includes("تاكسي")) {
     category = "مواصلات";
-  } else if (message.includes("راتب")) {
+  } else if (message.includes("راتب") || message.includes("معاش")) {
     category = "راتب";
-  } else if (message.includes("تسوق") || message.includes("ملابس")) {
+  } else if (message.includes("تسوق") || message.includes("ملابس") || message.includes("شراء")) {
     category = "تسوق";
+  } else if (message.includes("صحة") || message.includes("دواء") || message.includes("طبيب")) {
+    category = "صحة";
+  } else if (message.includes("ترفيه") || message.includes("سينما") || message.includes("رحلة")) {
+    category = "ترفيه";
   }
 
-  return {
-    type: (isExpense || !isIncome) ? "expense" : "income" as const,
-    amount: amount,
-    category: category,
-    description: message,
-  };
+  if (amount > 0) {
+    return {
+      type: isExpense ? "expense" : "income",
+      amount: amount,
+      category: category,
+      description: message,
+    };
+  }
+
+  return null;
 };
 
 export const AIChat = () => {
@@ -61,7 +76,6 @@ export const AIChat = () => {
 
   const addTransaction = async (transactionData: Omit<Transaction, "id" | "date">) => {
     try {
-      // Add to Supabase
       const { data, error } = await supabase
         .from('transactions')
         .insert([{
@@ -72,7 +86,6 @@ export const AIChat = () => {
 
       if (error) throw error;
 
-      // Show success message
       toast({
         title: "تم إضافة المعاملة بنجاح",
         description: `${transactionData.type === "expense" ? "مصروف" : "دخل"}: ${
@@ -80,14 +93,12 @@ export const AIChat = () => {
         } جنيه - ${transactionData.category}`,
       });
 
-      // Add system response
       setMessages(prev => [...prev, 
         `تم إضافة ${transactionData.type === "expense" ? "مصروف" : "دخل"} بقيمة ${
           transactionData.amount
         } جنيه في فئة ${transactionData.category}`
       ]);
 
-      // Notify other components about the update
       window.dispatchEvent(new Event("transactionsUpdated"));
 
     } catch (error) {
@@ -108,10 +119,10 @@ export const AIChat = () => {
     
     try {
       const analysis = analyzeMessage(input);
-      if (analysis.amount > 0) {
+      if (analysis) {
         await addTransaction(analysis);
       } else {
-        setMessages(prev => [...prev, "عذراً، لم أتمكن من فهم المبلغ في رسالتك. هل يمكنك إعادة صياغتها بشكل أوضح؟"]);
+        setMessages(prev => [...prev, "لم أتمكن من تحديد المبلغ في رسالتك. هل يمكنك ذكر المبلغ بشكل واضح؟ مثال: صرفت 50 جنيه على الطعام"]);
       }
     } catch (error) {
       console.error("Error processing message:", error);
