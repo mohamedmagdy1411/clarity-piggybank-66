@@ -4,8 +4,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/components/ui/use-toast";
 import { useState } from "react";
-
-const STORAGE_KEY = "clarity_finance_transactions";
+import { supabase } from "@/integrations/supabase/client";
 
 type Transaction = {
   id: number;
@@ -60,27 +59,18 @@ export const AIChat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const addTransaction = (transactionData: Omit<Transaction, "id" | "date">) => {
+  const addTransaction = async (transactionData: Omit<Transaction, "id" | "date">) => {
     try {
-      // Get existing transactions
-      const savedTransactions = localStorage.getItem(STORAGE_KEY);
-      const transactions: Transaction[] = savedTransactions ? JSON.parse(savedTransactions) : [];
-      
-      // Create new transaction
-      const newTransaction: Transaction = {
-        id: transactions.length > 0 ? Math.max(...transactions.map(t => t.id)) + 1 : 1,
-        ...transactionData,
-        date: new Date().toISOString().split("T")[0],
-      };
-      
-      // Add to beginning of array
-      const updatedTransactions = [newTransaction, ...transactions];
-      
-      // Save back to localStorage
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedTransactions));
-      
-      // Notify other components about the update
-      window.dispatchEvent(new Event("transactionsUpdated"));
+      // Add to Supabase
+      const { data, error } = await supabase
+        .from('transactions')
+        .insert([{
+          ...transactionData,
+          date: new Date().toISOString().split('T')[0],
+        }])
+        .select();
+
+      if (error) throw error;
 
       // Show success message
       toast({
@@ -96,6 +86,9 @@ export const AIChat = () => {
           transactionData.amount
         } جنيه في فئة ${transactionData.category}`
       ]);
+
+      // Notify other components about the update
+      window.dispatchEvent(new Event("transactionsUpdated"));
 
     } catch (error) {
       console.error("Error adding transaction:", error);
@@ -116,7 +109,7 @@ export const AIChat = () => {
     try {
       const analysis = analyzeMessage(input);
       if (analysis.amount > 0) {
-        addTransaction(analysis);
+        await addTransaction(analysis);
       } else {
         setMessages(prev => [...prev, "عذراً، لم أتمكن من فهم المبلغ في رسالتك. هل يمكنك إعادة صياغتها بشكل أوضح؟"]);
       }
