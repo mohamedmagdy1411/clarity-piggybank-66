@@ -15,53 +15,69 @@ type Transaction = {
   date: string;
 };
 
-const analyzeMessage = (message: string): Omit<Transaction, "id" | "date"> | null => {
-  // Enhanced Arabic text analysis with more keywords and patterns
-  const isExpense = message.includes("صرفت") || 
-                   message.includes("اشتريت") || 
-                   message.includes("دفعت") ||
-                   message.includes("انفقت") ||
-                   message.includes("خسرت") ||
-                   message.includes("مصروف") ||
-                   message.includes("مصاريف") ||
-                   message.includes("تكلفة");
-                   
-  const isIncome = message.includes("استلمت") || 
-                  message.includes("ربحت") || 
-                  message.includes("دخل") ||
-                  message.includes("راتب") ||
-                  message.includes("مكافأة") ||
-                  message.includes("ايراد") ||
-                  message.includes("حصلت على") ||
-                  message.includes("كسبت");
+const convertToEnglishNumbers = (str: string): string => {
+  const arabicNumbers = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+  const hindiNumbers = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+  
+  let result = str;
+  arabicNumbers.forEach((num, idx) => {
+    result = result.replace(new RegExp(num, 'g'), idx.toString());
+  });
+  hindiNumbers.forEach((num, idx) => {
+    result = result.replace(new RegExp(num, 'g'), idx.toString());
+  });
+  return result;
+};
 
-  // Extract amount using enhanced regex pattern
-  const numberPattern = /\d+(\.\d+)?/g;
-  const numbers = message.match(numberPattern);
+const analyzeMessage = (message: string): Omit<Transaction, "id" | "date"> | null => {
+  // Convert any Arabic/Hindi numbers to English numbers first
+  const normalizedMessage = convertToEnglishNumbers(message);
+  
+  const isExpense = normalizedMessage.includes("صرفت") || 
+                   normalizedMessage.includes("اشتريت") || 
+                   normalizedMessage.includes("دفعت") ||
+                   normalizedMessage.includes("انفقت") ||
+                   normalizedMessage.includes("خسرت") ||
+                   normalizedMessage.includes("مصروف") ||
+                   normalizedMessage.includes("مصاريف") ||
+                   normalizedMessage.includes("تكلفة");
+                   
+  const isIncome = normalizedMessage.includes("استلمت") || 
+                  normalizedMessage.includes("ربحت") || 
+                  normalizedMessage.includes("دخل") ||
+                  normalizedMessage.includes("راتب") ||
+                  normalizedMessage.includes("مكافأة") ||
+                  normalizedMessage.includes("ايراد") ||
+                  normalizedMessage.includes("حصلت على") ||
+                  normalizedMessage.includes("كسبت");
+
+  // Extract amount using enhanced regex pattern that handles decimal numbers
+  const numberPattern = /\d+(?:\.\d+)?/g;
+  const numbers = normalizedMessage.match(numberPattern);
   const amount = numbers ? Math.max(...numbers.map(n => parseFloat(n))) : 0;
 
   // Enhanced category detection
   let category = "أخرى";
-  if (message.includes("طعام") || message.includes("مطعم") || message.includes("أكل") || message.includes("وجبة")) {
+  if (normalizedMessage.includes("طعام") || normalizedMessage.includes("مطعم") || normalizedMessage.includes("أكل") || normalizedMessage.includes("وجبة")) {
     category = "طعام";
-  } else if (message.includes("مواصلات") || message.includes("سيارة") || message.includes("بنزين") || message.includes("تاكسي")) {
+  } else if (normalizedMessage.includes("مواصلات") || normalizedMessage.includes("سيارة") || normalizedMessage.includes("بنزين") || normalizedMessage.includes("تاكسي")) {
     category = "مواصلات";
-  } else if (message.includes("راتب") || message.includes("معاش")) {
+  } else if (normalizedMessage.includes("راتب") || normalizedMessage.includes("معاش")) {
     category = "راتب";
-  } else if (message.includes("تسوق") || message.includes("ملابس") || message.includes("شراء")) {
+  } else if (normalizedMessage.includes("تسوق") || normalizedMessage.includes("ملابس") || normalizedMessage.includes("شراء")) {
     category = "تسوق";
-  } else if (message.includes("صحة") || message.includes("دواء") || message.includes("طبيب")) {
+  } else if (normalizedMessage.includes("صحة") || normalizedMessage.includes("دواء") || normalizedMessage.includes("طبيب")) {
     category = "صحة";
-  } else if (message.includes("ترفيه") || message.includes("سينما") || message.includes("رحلة")) {
+  } else if (normalizedMessage.includes("ترفيه") || normalizedMessage.includes("سينما") || normalizedMessage.includes("رحلة")) {
     category = "ترفيه";
   }
 
-  if (amount > 0) {
+  if (amount > 0 && (isIncome || isExpense)) {
     return {
       type: isExpense ? "expense" : "income",
       amount: amount,
       category: category,
-      description: message,
+      description: normalizedMessage,
     };
   }
 
@@ -84,7 +100,10 @@ export const AIChat = () => {
         }])
         .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
+      }
 
       toast({
         title: "تم إضافة المعاملة بنجاح",
@@ -99,12 +118,14 @@ export const AIChat = () => {
         } جنيه في فئة ${transactionData.category}`
       ]);
 
+      // Trigger update of transactions list
       window.dispatchEvent(new Event("transactionsUpdated"));
 
     } catch (error) {
       console.error("Error adding transaction:", error);
       toast({
         title: "خطأ في إضافة المعاملة",
+        description: "حدث خطأ أثناء حفظ المعاملة. يرجى المحاولة مرة أخرى.",
         variant: "destructive",
       });
     }
@@ -122,7 +143,7 @@ export const AIChat = () => {
       if (analysis) {
         await addTransaction(analysis);
       } else {
-        setMessages(prev => [...prev, "لم أتمكن من تحديد المبلغ في رسالتك. هل يمكنك ذكر المبلغ بشكل واضح؟ مثال: صرفت 50 جنيه على الطعام"]);
+        setMessages(prev => [...prev, "لم أتمكن من تحديد المبلغ في رسالتك. هل يمكنك ذكر المبلغ بشكل واضح؟ مثال: صرفت ٥٠ جنيه على الطعام"]);
       }
     } catch (error) {
       console.error("Error processing message:", error);
@@ -155,7 +176,7 @@ export const AIChat = () => {
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="اكتب معاملتك المالية هنا... مثال: صرفت 50 جنيه على الطعام"
+          placeholder="اكتب معاملتك المالية هنا... مثال: صرفت ٥٠ جنيه على الطعام"
           className="text-right"
           dir="rtl"
         />
